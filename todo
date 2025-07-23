@@ -1,0 +1,12 @@
+get possilbe moves -> evaluate ->
+
+get possilbe moves: 
+iterate over board:
+    in each square:
+        check the piece type
+        get legal moves and evaluate
+        choose max move and save it as new board
+    board <- new board
+
+TODO: check if square is attacked
+    - complete move function
