@@ -1,6 +1,10 @@
 {
     "files.associations": {
         "*.cpp": "cpp",
-        "vector": "cpp"
+        "vector": "cpp",
+        "algorithm": "cpp",
+        "ios": "cpp",
+        "type_traits": "cpp",
+        "xutility": "cpp"
     }
 }

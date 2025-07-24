@@ -1,5 +1,8 @@
 #include "board.h"
 
+bool enPassantWhite[8];
+bool enPassantBlack[8];
+
 void printFullBoard(const Board &board)
 {
     printf("\n");
@@ -9,7 +12,7 @@ void printFullBoard(const Board &board)
         for (int file = 0; file < RANK_SIZE; file++)
         {
             int sq = rank * RANK_SIZE + file;
-            printf("%c ", get_piece_at_square(board,sq));
+            printf("%c ", get_piece_at_square(board, sq));
         }
         printf("\n");
     }
@@ -44,7 +47,6 @@ char get_piece_at_square(const Board &board, char square)
         return BLACK_KING;
     return EMPTY_SQUARE;
 }
-
 
 // void initBoard()
 // {

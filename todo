@@ -10,3 +10,8 @@ iterate over board:
 
 TODO: check if square is attacked
     - complete move function
+
+- capture edge cases: 
+en pessant capture
+casteling
+promotion
