@@ -1,336 +1,310 @@
 #include "move.h"
 
-extern Board whiteBoard, blackBoard;
+// The external whiteBoard is the single source of truth for the game state.
+extern Board whiteBoard;
 
+// Generates all legal moves for the current player.
+// It iterates through the board, identifies pieces of the current player,
+// and calls the appropriate move generation function for that piece.
 void getMoves(unordered_set<string> &moves, bool turn) // turn: white=false, black=true
 {
-    Board &board = !turn ? whiteBoard : blackBoard;
-
-    for (int rank = FIRST_RANK; rank < RANK_SIZE; rank++)
+    for (int sq = 0; sq < BOARD_SIZE; sq++)
     {
-        for (int file = 0; file < RANK_SIZE; file++)
+        char piece = get_piece_at_square(whiteBoard, sq);
+
+        if (piece == EMPTY_SQUARE)
+            continue;
+
+        if ((!turn && is_white_piece(piece)) || (turn && is_black_piece(piece)))
         {
-            char square = rank * RANK_SIZE + file;
-            char piece = get_piece_at_square(board, square);
-            if ((turn == false && is_black_piece(piece)) || (turn == true && is_white_piece(piece)) || piece == EMPTY_SQUARE)
-                continue;
             switch (piece)
             {
             case WHITE_PAWN:
             case BLACK_PAWN:
-                getPawnMoves(moves, turn, square);
+                getPawnMoves(moves, turn, sq);
                 break;
             case WHITE_KNIGHT:
             case BLACK_KNIGHT:
-                getKnightMoves(moves, turn, square);
+                getKnightMoves(moves, turn, sq);
                 break;
             case WHITE_BISHOP:
             case BLACK_BISHOP:
-                getBishopMoves(moves, turn, square);
+                getBishopMoves(moves, turn, sq);
                 break;
             case WHITE_ROOK:
             case BLACK_ROOK:
-                getRookMoves(moves, turn, square);
+                getRookMoves(moves, turn, sq);
                 break;
             case WHITE_QUEEN:
             case BLACK_QUEEN:
-                getQueenMoves(moves, turn, square);
+                getQueenMoves(moves, turn, sq);
                 break;
             case WHITE_KING:
             case BLACK_KING:
-                getKingMoves(moves, turn, square);
-                break;
-            default:
+                getKingMoves(moves, turn, sq);
                 break;
             }
         }
     }
 }
 
+// Generates pawn moves, including forward, double forward, captures, and en passant.
 void getPawnMoves(unordered_set<string> &moves, bool turn, char square)
 {
-    Board &board = !turn ? whiteBoard : blackBoard;
+    int direction = !turn ? 1 : -1;
+    int startRank = !turn ? RANK_2 : RANK_7;
+    int enPassantRank = !turn ? RANK_5 : RANK_4;
 
-    int direction = turn ? -1 : 1; // white moves up (+1), black moves down (-1)
-    int startRank = turn ? RANK_7 : RANK_2;
-    int enPassantRank = turn ? RANK_4 : RANK_5;
-
-    // Forward move
-    char forward = square + direction * 8;
-    if (forward >= 0 && forward < 64 && get_piece_at_square(board, forward) == '.')
+    // Single step forward
+    char to = square + 8 * direction;
+    if (to >= a1 && to <= h8 && get_piece_at_square(whiteBoard, to) == EMPTY_SQUARE)
     {
-        moves.insert(move_to_string(make_move(square, forward)));
-
-        // Double forward move from starting position
+        moves.insert(move_to_string(make_move(square, to)));
+        // Double step forward
         if (square_to_rank(square) == startRank)
         {
-            char doubleForward = square + direction * 16;
-            if (doubleForward >= 0 && doubleForward < 64 && get_piece_at_square(board, doubleForward) == '.')
+            to = square + 16 * direction;
+            if (get_piece_at_square(whiteBoard, to) == EMPTY_SQUARE)
             {
-                moves.insert(move_to_string(make_move(square, doubleForward)));
+                moves.insert(move_to_string(make_move(square, to)));
             }
         }
     }
 
-    // Capture moves
-    char leftCapture = square + direction * 8 - 1;
-    char rightCapture = square + direction * 8 + 1;
-
-    if (leftCapture >= 0 && leftCapture < 64 && square_to_file(square) != FILE_A)
+    // Captures
+    for (int file_offset = -1; file_offset <= 1; file_offset += 2)
     {
-        char piece = get_piece_at_square(board, leftCapture);
-        if (piece != '.' && ((turn && is_white_piece(piece)) || (!turn && is_black_piece(piece))))
+        if ((square_to_file(square) == FILE_A && file_offset == -1) || (square_to_file(square) == FILE_H && file_offset == 1))
         {
-            moves.insert(move_to_string(make_move(square, leftCapture)));
+            continue;
+        }
+        to = square + 8 * direction + file_offset;
+        if (to >= a1 && to <= h8)
+        {
+            char target_piece = get_piece_at_square(whiteBoard, to);
+            if (target_piece != EMPTY_SQUARE && is_white_piece(target_piece) != is_white_piece(get_piece_at_square(whiteBoard, square)))
+            {
+                moves.insert(move_to_string(make_move(square, to)));
+            }
         }
     }
-
-    if (rightCapture >= 0 && rightCapture < 64 && square_to_file(square) != FILE_H)
-    {
-        char piece = get_piece_at_square(board, rightCapture);
-        if (piece != '.' && ((turn && is_white_piece(piece)) || (!turn && is_black_piece(piece))))
-        {
-            moves.insert(move_to_string(make_move(square, rightCapture)));
-        }
-    }
-
-    // En passant
+    // En Passant
     if (square_to_rank(square) == enPassantRank)
     {
-        bool *enPassantArray = turn ? enPassantBlack : enPassantWhite;
-        int file = square_to_file(square);
-
-        // En passant left
-        if (file > FILE_A && enPassantArray[file - 1])
+        bool *enPassantFile = turn ? enPassantBlack : enPassantWhite;
+        int currentFile = square_to_file(square);
+        if (currentFile > FILE_A && enPassantFile[currentFile - 1])
         {
-            moves.insert(move_to_string(make_move(square, leftCapture)));
+            moves.insert(move_to_string(make_move(square, square + 8 * direction - 1)));
         }
-        // En passant right
-        if (file < FILE_H && enPassantArray[file + 1])
+        if (currentFile < FILE_H && enPassantFile[currentFile + 1])
         {
-            moves.insert(move_to_string(make_move(square, rightCapture)));
+            moves.insert(move_to_string(make_move(square, square + 8 * direction + 1)));
         }
     }
 }
 
+// Generates knight moves using a pre-calculated move table.
 void getKnightMoves(unordered_set<string> &moves, bool turn, char square)
 {
-    Board &board = !turn ? whiteBoard : blackBoard;
+    static const int knight_moves[8][2] = {{-2, -1}, {-2, 1}, {-1, -2}, {-1, 2}, {1, -2}, {1, 2}, {2, -1}, {2, 1}};
+    int rank = square_to_rank(square);
+    int file = square_to_file(square);
 
-    static vector<vector<char>> knightMoveTable = []() {
-        vector<vector<char>> table(64);
-        for (int sq = 0; sq < 64; ++sq)
-        {
-            int rank = sq / 8, file = sq % 8;
-            int knightMoves[8][2] = {{2, 1}, {2, -1}, {1, 2}, {1, -2}, {-2, 1}, {-2, -1}, {-1, 2}, {-1, -2}};
-
-            for (int i = 0; i < 8; ++i)
-            {
-                int newRank = rank + knightMoves[i][0];
-                int newFile = file + knightMoves[i][1];
-                if (newRank >= 0 && newRank < 8 && newFile >= 0 && newFile < 8)
-                    table[sq].push_back(newRank * 8 + newFile);
-            }
-        }
-        return table;
-    }();
-
-    for (char target : knightMoveTable[(int)square])
+    for (const auto &move : knight_moves)
     {
-        char piece = get_piece_at_square(board, target);
-
-        if (piece == '.' || (turn && is_white_piece(piece)) || (!turn && is_black_piece(piece)))
+        int new_rank = rank + move[0];
+        int new_file = file + move[1];
+        if (new_rank >= FIRST_RANK && new_rank <= LAST_RANK && new_file >= FILE_A && new_file <= FILE_H)
         {
-            moves.insert(move_to_string(make_move(square, target)));
+            char to = new_rank * 8 + new_file;
+            char target_piece = get_piece_at_square(whiteBoard, to);
+            if (target_piece == EMPTY_SQUARE || (turn != is_white_piece(target_piece)))
+            {
+                moves.insert(move_to_string(make_move(square, to)));
+            }
         }
     }
 }
+
+// Generates bishop moves by sliding along diagonals.
 void getBishopMoves(unordered_set<string> &moves, bool turn, char square)
 {
-    Board &board = !turn ? whiteBoard : blackBoard;
-    static const int directions[4][2] = {{1, 1}, {1, -1}, {-1, 1}, {-1, -1}};
-
-    int rank = square / 8, file = square % 8;
-
-    for (int dir = 0; dir < 4; dir++)
+    const int directions[] = {-9, -7, 7, 9};
+    for (int dir : directions)
     {
-        int dr = directions[dir][0], df = directions[dir][1];
-        for (int step = 1; step < 8; step++)
+        char to = square + dir;
+        while (to >= a1 && to <= h8)
         {
-            int newRank = rank + step * dr, newFile = file + step * df;
-            if (newRank < 0 || newRank >= 8 || newFile < 0 || newFile >= 8)
+            if (abs(square_to_file(to) - square_to_file(to - dir)) != 1)
                 break;
-
-            char target = newRank * 8 + newFile;
-            char piece = get_piece_at_square(board, target);
-
-            if (piece == '.')
+            char target_piece = get_piece_at_square(whiteBoard, to);
+            if (target_piece == EMPTY_SQUARE)
             {
-                moves.insert(move_to_string(make_move(square, target)));
+                moves.insert(move_to_string(make_move(square, to)));
             }
             else
             {
-                if ((!turn && is_black_piece(piece)) || (turn && is_white_piece(piece)))
-                    moves.insert(move_to_string(make_move(square, target)));
-                break; // blocked
+                if (turn != is_white_piece(target_piece))
+                {
+                    moves.insert(move_to_string(make_move(square, to)));
+                }
+                break;
             }
+            to += dir;
         }
     }
 }
 
+// Generates rook moves by sliding along ranks and files.
 void getRookMoves(unordered_set<string> &moves, bool turn, char square)
 {
-    Board &board = !turn ? whiteBoard : blackBoard;
-    static const int directions[4][2] = {{1, 0}, {-1, 0}, {0, -1}, {0, 1}};
-
-    int rank = square / 8, file = square % 8;
-
-    for (int dir = 0; dir < 4; dir++)
+    const int directions[] = {-8, -1, 1, 8};
+    for (int dir : directions)
     {
-        int dr = directions[dir][0], df = directions[dir][1];
-        for (int step = 1; step < 8; step++)
+        char to = square + dir;
+        while (to >= a1 && to <= h8)
         {
-            int newRank = rank + step * dr, newFile = file + step * df;
-            if (newRank < 0 || newRank >= 8 || newFile < 0 || newFile >= 8)
-                break;
-
-            char target = newRank * 8 + newFile;
-            char piece = get_piece_at_square(board, target);
-
-            if (piece == '.')
+            if (abs(square_to_file(square) - square_to_file(to)) > 0 && abs(square_to_rank(square) - square_to_rank(to)) > 0)
             {
-                moves.insert(move_to_string(make_move(square, target)));
+                if (abs(square_to_file(to) - square_to_file(to - dir)) > 1)
+                    break;
+            }
+            char target_piece = get_piece_at_square(whiteBoard, to);
+            if (target_piece == EMPTY_SQUARE)
+            {
+                moves.insert(move_to_string(make_move(square, to)));
             }
             else
             {
-                if ((!turn && is_black_piece(piece)) || (turn && is_white_piece(piece)))
-                    moves.insert(move_to_string(make_move(square, target)));
-                break; // blocked
+                if (turn != is_white_piece(target_piece))
+                {
+                    moves.insert(move_to_string(make_move(square, to)));
+                }
+                break;
             }
+            to += dir;
         }
     }
 }
 
+// Generates queen moves by combining bishop and rook moves.
 void getQueenMoves(unordered_set<string> &moves, bool turn, char square)
 {
     getBishopMoves(moves, turn, square);
     getRookMoves(moves, turn, square);
 }
 
+// Generates king moves, one step in any direction.
 void getKingMoves(unordered_set<string> &moves, bool turn, char square)
 {
-    Board &board = !turn ? whiteBoard : blackBoard;
-
-    static const int directions[8][2] = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}, {1, 1}, {1, -1}, {-1, 1}, {-1, -1}};
-
-    int rank = square / 8, file = square % 8;
-
-    for (int dir = 0; dir < 8; dir++)
+    const int directions[] = {-9, -8, -7, -1, 1, 7, 8, 9};
+    for (int dir : directions)
     {
-        int newRank = rank + directions[dir][0], newFile = file + directions[dir][1];
-        if (newRank < 0 || newRank >= 8 || newFile < 0 || newFile >= 8)
-            continue;
-
-        char target = newRank * 8 + newFile;
-        char piece = get_piece_at_square(board, target);
-
-        if (piece == '.' || (!turn && is_black_piece(piece)) || (turn && is_white_piece(piece)))
+        char to = square + dir;
+        if (to >= a1 && to <= h8)
         {
-            moves.insert(move_to_string(make_move(square, target)));
+            if (abs(square_to_file(square) - square_to_file(to)) > 1)
+                continue;
+            char target_piece = get_piece_at_square(whiteBoard, to);
+            if (target_piece == EMPTY_SQUARE || (turn != is_white_piece(target_piece)))
+            {
+                moves.insert(move_to_string(make_move(square, to)));
+            }
         }
     }
 }
 
+// Updates the single whiteBoard based on the move made.
 void makeMove(u16 move, bool turn)
 {
     char from = get_move_from(move);
     char to = get_move_to(move);
+    char piece = get_piece_at_square(whiteBoard, from);
 
-    Board &currentBoard = turn ? blackBoard : whiteBoard;
-    Board &otherBoard = turn ? whiteBoard : blackBoard;
-
-    char piece = get_piece_at_square(currentBoard, from);
-
-    // Get pointers to the bitboards
-    u64 *our_piece_bb = nullptr, *opponent_piece_bb = nullptr;
-    u64 *our_piece_bb_other = nullptr, *opponent_piece_bb_other = nullptr;
-
-    char capturedPiece = get_piece_at_square(currentBoard, to);
-
-    // Remove the captured piece
-    if (capturedPiece != EMPTY_SQUARE)
-    {
-        if (is_white_piece(capturedPiece))
-        {
-            if (capturedPiece == WHITE_PAWN)
-                opponent_piece_bb = &currentBoard.white_pawns, opponent_piece_bb_other = &otherBoard.white_pawns;
-            else if (capturedPiece == WHITE_KNIGHT)
-                opponent_piece_bb = &currentBoard.white_knights, opponent_piece_bb_other = &otherBoard.white_knights;
-            else if (capturedPiece == WHITE_BISHOP)
-                opponent_piece_bb = &currentBoard.white_bishops, opponent_piece_bb_other = &otherBoard.white_bishops;
-            else if (capturedPiece == WHITE_ROOK)
-                opponent_piece_bb = &currentBoard.white_rooks, opponent_piece_bb_other = &otherBoard.white_rooks;
-            else if (capturedPiece == WHITE_QUEEN)
-                opponent_piece_bb = &currentBoard.white_queens, opponent_piece_bb_other = &otherBoard.white_queens;
-        }
-        else
-        {
-            if (capturedPiece == BLACK_PAWN)
-                opponent_piece_bb = &currentBoard.black_pawns, opponent_piece_bb_other = &otherBoard.black_pawns;
-            else if (capturedPiece == BLACK_KNIGHT)
-                opponent_piece_bb = &currentBoard.black_knights, opponent_piece_bb_other = &otherBoard.black_knights;
-            else if (capturedPiece == BLACK_BISHOP)
-                opponent_piece_bb = &currentBoard.black_bishops, opponent_piece_bb_other = &otherBoard.black_bishops;
-            else if (capturedPiece == BLACK_ROOK)
-                opponent_piece_bb = &currentBoard.black_rooks, opponent_piece_bb_other = &otherBoard.black_rooks;
-            else if (capturedPiece == BLACK_QUEEN)
-                opponent_piece_bb = &currentBoard.black_queens, opponent_piece_bb_other = &otherBoard.black_queens;
-        }
-        if (opponent_piece_bb)
-        {
-            remove_piece(*opponent_piece_bb, to);
-            remove_piece(*opponent_piece_bb_other, 64-to);
-        }
-    }
-
-    // Identify the moving piece and its bitboard
+    // Remove piece from the 'from' square
+    u64 *from_bb = nullptr;
     if (is_white_piece(piece))
     {
         if (piece == WHITE_PAWN)
-            our_piece_bb = &currentBoard.white_pawns, our_piece_bb_other = &otherBoard.white_pawns;
+            from_bb = &whiteBoard.white_pawns;
         else if (piece == WHITE_KNIGHT)
-            our_piece_bb = &currentBoard.white_knights, our_piece_bb_other = &otherBoard.white_knights;
+            from_bb = &whiteBoard.white_knights;
         else if (piece == WHITE_BISHOP)
-            our_piece_bb = &currentBoard.white_bishops, our_piece_bb_other = &otherBoard.white_bishops;
+            from_bb = &whiteBoard.white_bishops;
         else if (piece == WHITE_ROOK)
-            our_piece_bb = &currentBoard.white_rooks, our_piece_bb_other = &otherBoard.white_rooks;
+            from_bb = &whiteBoard.white_rooks;
         else if (piece == WHITE_QUEEN)
-            our_piece_bb = &currentBoard.white_queens, our_piece_bb_other = &otherBoard.white_queens;
+            from_bb = &whiteBoard.white_queens;
         else if (piece == WHITE_KING)
-            our_piece_bb = &currentBoard.white_king, our_piece_bb_other = &otherBoard.white_king;
+            from_bb = &whiteBoard.white_king;
     }
     else
     {
         if (piece == BLACK_PAWN)
-            our_piece_bb = &currentBoard.black_pawns, our_piece_bb_other = &otherBoard.black_pawns;
+            from_bb = &whiteBoard.black_pawns;
         else if (piece == BLACK_KNIGHT)
-            our_piece_bb = &currentBoard.black_knights, our_piece_bb_other = &otherBoard.black_knights;
+            from_bb = &whiteBoard.black_knights;
         else if (piece == BLACK_BISHOP)
-            our_piece_bb = &currentBoard.black_bishops, our_piece_bb_other = &otherBoard.black_bishops;
+            from_bb = &whiteBoard.black_bishops;
         else if (piece == BLACK_ROOK)
-            our_piece_bb = &currentBoard.black_rooks, our_piece_bb_other = &otherBoard.black_rooks;
+            from_bb = &whiteBoard.black_rooks;
         else if (piece == BLACK_QUEEN)
-            our_piece_bb = &currentBoard.black_queens, our_piece_bb_other = &otherBoard.black_queens;
+            from_bb = &whiteBoard.black_queens;
         else if (piece == BLACK_KING)
-            our_piece_bb = &currentBoard.black_king, our_piece_bb_other = &otherBoard.black_king;
+            from_bb = &whiteBoard.black_king;
+    }
+    if (from_bb)
+        remove_piece(*from_bb, from);
+
+    // If it's a capture, remove the piece from the 'to' square
+    char captured_piece = get_piece_at_square(whiteBoard, to);
+    if (captured_piece != EMPTY_SQUARE)
+    {
+        u64 *captured_bb = nullptr;
+        if (is_white_piece(captured_piece))
+        {
+            if (captured_piece == WHITE_PAWN)
+                captured_bb = &whiteBoard.white_pawns;
+            else if (captured_piece == WHITE_KNIGHT)
+                captured_bb = &whiteBoard.white_knights;
+            else if (captured_piece == WHITE_BISHOP)
+                captured_bb = &whiteBoard.white_bishops;
+            else if (captured_piece == WHITE_ROOK)
+                captured_bb = &whiteBoard.white_rooks;
+            else if (captured_piece == WHITE_QUEEN)
+                captured_bb = &whiteBoard.white_queens;
+        }
+        else
+        {
+            if (captured_piece == BLACK_PAWN)
+                captured_bb = &whiteBoard.black_pawns;
+            else if (captured_piece == BLACK_KNIGHT)
+                captured_bb = &whiteBoard.black_knights;
+            else if (captured_piece == BLACK_BISHOP)
+                captured_bb = &whiteBoard.black_bishops;
+            else if (captured_piece == BLACK_ROOK)
+                captured_bb = &whiteBoard.black_rooks;
+            else if (captured_piece == BLACK_QUEEN)
+                captured_bb = &whiteBoard.black_queens;
+        }
+        if (captured_bb)
+            remove_piece(*captured_bb, to);
     }
 
-    // Move the piece
-    if (our_piece_bb)
+    // Add piece to the 'to' square
+    if (from_bb)
+        add_piece(*from_bb, to);
+
+    // Reset en passant arrays
+    bool *enPassantFile = turn ? enPassantWhite : enPassantBlack;
+    for (int i = 0; i < 8; ++i)
+        enPassantFile[i] = false;
+
+    // Set en passant flag if pawn moved two squares
+    if ((piece == WHITE_PAWN || piece == BLACK_PAWN) && abs(square_to_rank(from) - square_to_rank(to)) == 2)
     {
-        remove_piece(*our_piece_bb, from);
-        add_piece(*our_piece_bb, to);
-        remove_piece(*our_piece_bb_other, 64-from);
-        add_piece(*our_piece_bb_other, 64-to);
+        bool *currentEnPassant = turn ? enPassantBlack : enPassantWhite;
+        currentEnPassant[square_to_file(from)] = true;
     }
 }

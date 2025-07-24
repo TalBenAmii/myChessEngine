@@ -2,7 +2,7 @@
 #include "defs.h"
 #include "move.h"
 
-Board whiteBoard = initialWhiteBoard, blackBoard = initialBlackBoard;
+Board whiteBoard = initialWhiteBoard;
 
 int main()
 {
@@ -13,8 +13,7 @@ int main()
     
     while (true)
     {
-        Board &board = !turn ? whiteBoard : blackBoard;
-        printFullBoard(board);
+        printFullBoard(whiteBoard);
         moves.clear();
         getMoves(moves, turn);
         for (auto a : moves)
