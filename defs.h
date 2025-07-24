@@ -63,8 +63,8 @@ using namespace std;
 #define add_piece(pieceBoard, square) (pieceBoard) |= (1ULL << (square))
 #define remove_piece(pieceBoard, square) (pieceBoard) ^= get_piece((pieceBoard), (square))
 
-#define is_black_piece(piece) ((piece) >= BLACK_PAWN && (piece) <= BLACK_KING)
-#define is_white_piece(piece) ((piece) >= WHITE_PAWN && (piece) <= WHITE_KING)
+#define is_black_piece(piece) ((piece) >= BLACK_BISHOP&& (piece) <= BLACK_ROOK)
+#define is_white_piece(piece) ((piece) >= WHITE_BISHOP && (piece) <= WHITE_ROOK)
 
 #define square_to_rank(square) ((square) / 8)
 #define square_to_file(square) ((square) % 8)

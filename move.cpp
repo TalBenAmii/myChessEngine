@@ -12,7 +12,7 @@ void getMoves(unordered_set<string> &moves, bool turn) // turn: white=false, bla
         {
             char square = rank * RANK_SIZE + file;
             char piece = get_piece_at_square(board, square);
-            if ((turn == false && is_black_piece(piece)) || (turn == true && is_white_piece(piece)))
+            if ((turn == false && is_black_piece(piece)) || (turn == true && is_white_piece(piece)) || piece == EMPTY_SQUARE)
                 continue;
             switch (piece)
             {
@@ -243,160 +243,94 @@ void getKingMoves(unordered_set<string> &moves, bool turn, char square)
 
 void makeMove(u16 move, bool turn)
 {
-    char from = (move >> 8) & 0xFF;
-    char to = move & 0xFF;
+    char from = get_move_from(move);
+    char to = get_move_to(move);
 
-    Board &ourBoard = !turn ? whiteBoard : blackBoard;
-    Board &opponentBoard = !turn ? blackBoard : whiteBoard;
+    Board &currentBoard = turn ? blackBoard : whiteBoard;
+    Board &otherBoard = turn ? whiteBoard : blackBoard;
 
-    char piece = get_piece_at_square(ourBoard, from);
+    char piece = get_piece_at_square(currentBoard, from);
 
-    // Remove piece from source square on both boards
-    if (piece == WHITE_PAWN)
-    {
-        remove_piece(ourBoard.white_pawns, from);
-        remove_piece(opponentBoard.white_pawns, from);
-    }
-    else if (piece == WHITE_KNIGHT)
-    {
-        remove_piece(ourBoard.white_knights, from);
-        remove_piece(opponentBoard.white_knights, from);
-    }
-    else if (piece == WHITE_BISHOP)
-    {
-        remove_piece(ourBoard.white_bishops, from);
-        remove_piece(opponentBoard.white_bishops, from);
-    }
-    else if (piece == WHITE_ROOK)
-    {
-        remove_piece(ourBoard.white_rooks, from);
-        remove_piece(opponentBoard.white_rooks, from);
-    }
-    else if (piece == WHITE_QUEEN)
-    {
-        remove_piece(ourBoard.white_queens, from);
-        remove_piece(opponentBoard.white_queens, from);
-    }
-    else if (piece == WHITE_KING)
-    {
-        remove_piece(ourBoard.white_king, from);
-        remove_piece(opponentBoard.white_king, from);
-    }
-    else if (piece == BLACK_PAWN)
-    {
-        remove_piece(ourBoard.black_pawns, from);
-        remove_piece(opponentBoard.black_pawns, from);
-    }
-    else if (piece == BLACK_KNIGHT)
-    {
-        remove_piece(ourBoard.black_knights, from);
-        remove_piece(opponentBoard.black_knights, from);
-    }
-    else if (piece == BLACK_BISHOP)
-    {
-        remove_piece(ourBoard.black_bishops, from);
-        remove_piece(opponentBoard.black_bishops, from);
-    }
-    else if (piece == BLACK_ROOK)
-    {
-        remove_piece(ourBoard.black_rooks, from);
-        remove_piece(opponentBoard.black_rooks, from);
-    }
-    else if (piece == BLACK_QUEEN)
-    {
-        remove_piece(ourBoard.black_queens, from);
-        remove_piece(opponentBoard.black_queens, from);
-    }
-    else if (piece == BLACK_KING)
-    {
-        remove_piece(ourBoard.black_king, from);
-        remove_piece(opponentBoard.black_king, from);
-    }
+    // Get pointers to the bitboards
+    u64 *our_piece_bb = nullptr, *opponent_piece_bb = nullptr;
+    u64 *our_piece_bb_other = nullptr, *opponent_piece_bb_other = nullptr;
 
-    // Handle captures - remove opponent piece from destination
-    char capturedPiece = get_piece_at_square(opponentBoard, to);
+    char capturedPiece = get_piece_at_square(currentBoard, to);
+
+    // Remove the captured piece
     if (capturedPiece != EMPTY_SQUARE)
     {
         if (is_white_piece(capturedPiece))
         {
             if (capturedPiece == WHITE_PAWN)
-                remove_piece(ourBoard.white_pawns, to), remove_piece(opponentBoard.white_pawns, to);
+                opponent_piece_bb = &currentBoard.white_pawns, opponent_piece_bb_other = &otherBoard.white_pawns;
             else if (capturedPiece == WHITE_KNIGHT)
-                remove_piece(ourBoard.white_knights, to), remove_piece(opponentBoard.white_knights, to);
+                opponent_piece_bb = &currentBoard.white_knights, opponent_piece_bb_other = &otherBoard.white_knights;
             else if (capturedPiece == WHITE_BISHOP)
-                remove_piece(ourBoard.white_bishops, to), remove_piece(opponentBoard.white_bishops, to);
+                opponent_piece_bb = &currentBoard.white_bishops, opponent_piece_bb_other = &otherBoard.white_bishops;
             else if (capturedPiece == WHITE_ROOK)
-                remove_piece(ourBoard.white_rooks, to), remove_piece(opponentBoard.white_rooks, to);
+                opponent_piece_bb = &currentBoard.white_rooks, opponent_piece_bb_other = &otherBoard.white_rooks;
             else if (capturedPiece == WHITE_QUEEN)
-                remove_piece(ourBoard.white_queens, to), remove_piece(opponentBoard.white_queens, to);
-            // King capture is not handled here as it ends the game.
+                opponent_piece_bb = &currentBoard.white_queens, opponent_piece_bb_other = &otherBoard.white_queens;
         }
-        else // is_black_piece
+        else
         {
             if (capturedPiece == BLACK_PAWN)
-                remove_piece(ourBoard.black_pawns, to), remove_piece(opponentBoard.black_pawns, to);
+                opponent_piece_bb = &currentBoard.black_pawns, opponent_piece_bb_other = &otherBoard.black_pawns;
             else if (capturedPiece == BLACK_KNIGHT)
-                remove_piece(ourBoard.black_knights, to), remove_piece(opponentBoard.black_knights, to);
+                opponent_piece_bb = &currentBoard.black_knights, opponent_piece_bb_other = &otherBoard.black_knights;
             else if (capturedPiece == BLACK_BISHOP)
-                remove_piece(ourBoard.black_bishops, to), remove_piece(opponentBoard.black_bishops, to);
+                opponent_piece_bb = &currentBoard.black_bishops, opponent_piece_bb_other = &otherBoard.black_bishops;
             else if (capturedPiece == BLACK_ROOK)
-                remove_piece(ourBoard.black_rooks, to), remove_piece(opponentBoard.black_rooks, to);
+                opponent_piece_bb = &currentBoard.black_rooks, opponent_piece_bb_other = &otherBoard.black_rooks;
             else if (capturedPiece == BLACK_QUEEN)
-                remove_piece(ourBoard.black_queens, to), remove_piece(opponentBoard.black_queens, to);
+                opponent_piece_bb = &currentBoard.black_queens, opponent_piece_bb_other = &otherBoard.black_queens;
+        }
+        if (opponent_piece_bb)
+        {
+            remove_piece(*opponent_piece_bb, to);
+            remove_piece(*opponent_piece_bb_other, 64-to);
         }
     }
 
-    // Handle en passant capture
-    if ((piece == WHITE_PAWN || piece == BLACK_PAWN))
-    {
-        int fromFile = square_to_file(from);
-        int toFile = square_to_file(to);
-        if (fromFile != toFile && capturedPiece == EMPTY_SQUARE)
-        { // diagonal pawn move to empty square is en-passant
-            char capturedPawnSquare = turn ? (to + 8) : (to - 8);
-            // Remove the en passant captured pawn
-            if (turn) // black moved, captured white pawn
-            {
-                remove_piece(ourBoard.white_pawns, capturedPawnSquare);
-                remove_piece(opponentBoard.white_pawns, capturedPawnSquare);
-            }
-            else // white moved, captured black pawn
-            {
-                remove_piece(ourBoard.black_pawns, capturedPawnSquare);
-                remove_piece(opponentBoard.black_pawns, capturedPawnSquare);
-            }
-        }
-    }
-
-    // Place piece on destination square on both boards
+    // Identify the moving piece and its bitboard
     if (is_white_piece(piece))
     {
         if (piece == WHITE_PAWN)
-            add_piece(ourBoard.white_pawns, to), add_piece(opponentBoard.white_pawns, to);
+            our_piece_bb = &currentBoard.white_pawns, our_piece_bb_other = &otherBoard.white_pawns;
         else if (piece == WHITE_KNIGHT)
-            add_piece(ourBoard.white_knights, to), add_piece(opponentBoard.white_knights, to);
+            our_piece_bb = &currentBoard.white_knights, our_piece_bb_other = &otherBoard.white_knights;
         else if (piece == WHITE_BISHOP)
-            add_piece(ourBoard.white_bishops, to), add_piece(opponentBoard.white_bishops, to);
+            our_piece_bb = &currentBoard.white_bishops, our_piece_bb_other = &otherBoard.white_bishops;
         else if (piece == WHITE_ROOK)
-            add_piece(ourBoard.white_rooks, to), add_piece(opponentBoard.white_rooks, to);
+            our_piece_bb = &currentBoard.white_rooks, our_piece_bb_other = &otherBoard.white_rooks;
         else if (piece == WHITE_QUEEN)
-            add_piece(ourBoard.white_queens, to), add_piece(opponentBoard.white_queens, to);
+            our_piece_bb = &currentBoard.white_queens, our_piece_bb_other = &otherBoard.white_queens;
         else if (piece == WHITE_KING)
-            add_piece(ourBoard.white_king, to), add_piece(opponentBoard.white_king, to);
+            our_piece_bb = &currentBoard.white_king, our_piece_bb_other = &otherBoard.white_king;
     }
-    else // is_black_piece
+    else
     {
         if (piece == BLACK_PAWN)
-            add_piece(ourBoard.black_pawns, to), add_piece(opponentBoard.black_pawns, to);
+            our_piece_bb = &currentBoard.black_pawns, our_piece_bb_other = &otherBoard.black_pawns;
         else if (piece == BLACK_KNIGHT)
-            add_piece(ourBoard.black_knights, to), add_piece(opponentBoard.black_knights, to);
+            our_piece_bb = &currentBoard.black_knights, our_piece_bb_other = &otherBoard.black_knights;
         else if (piece == BLACK_BISHOP)
-            add_piece(ourBoard.black_bishops, to), add_piece(opponentBoard.black_bishops, to);
+            our_piece_bb = &currentBoard.black_bishops, our_piece_bb_other = &otherBoard.black_bishops;
         else if (piece == BLACK_ROOK)
-            add_piece(ourBoard.black_rooks, to), add_piece(opponentBoard.black_rooks, to);
+            our_piece_bb = &currentBoard.black_rooks, our_piece_bb_other = &otherBoard.black_rooks;
         else if (piece == BLACK_QUEEN)
-            add_piece(ourBoard.black_queens, to), add_piece(opponentBoard.black_queens, to);
+            our_piece_bb = &currentBoard.black_queens, our_piece_bb_other = &otherBoard.black_queens;
         else if (piece == BLACK_KING)
-            add_piece(ourBoard.black_king, to), add_piece(opponentBoard.black_king, to);
+            our_piece_bb = &currentBoard.black_king, our_piece_bb_other = &otherBoard.black_king;
+    }
+
+    // Move the piece
+    if (our_piece_bb)
+    {
+        remove_piece(*our_piece_bb, from);
+        add_piece(*our_piece_bb, to);
+        remove_piece(*our_piece_bb_other, 64-from);
+        add_piece(*our_piece_bb_other, 64-to);
     }
 }
