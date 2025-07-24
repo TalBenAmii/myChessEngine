@@ -2,8 +2,12 @@
 #define DEFS_H
 #include <cassert>
 #include <stdio.h>
+#include <unordered_set>
 #include <string>
+#include <iostream>
 #include <vector>
+
+using namespace std;
 
 #define BOARD_SIZE 64
 #define RANK_SIZE 8

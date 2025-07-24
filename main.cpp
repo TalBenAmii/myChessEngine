@@ -1,20 +1,34 @@
 #include "board.h"
-#include "move.h"
 #include "defs.h"
+#include "move.h"
 
 Board whiteBoard = initialWhiteBoard, blackBoard = initialBlackBoard;
 
 int main()
 {
     // initBoard();
-    printFullBoard(whiteBoard);
-    std::vector<u16> whiteMoves,blackMoves;
-    getMoves(whiteMoves,0);
-    for(auto a:whiteMoves)printf("%s ",move_to_string(a).c_str());
-    makeMove(whiteMoves[0],0);
-    makeMove(string_to_move("d2d3"),0);
-    makeMove(string_to_move("e2e4"),0);
-    printFullBoard(whiteBoard);
+    unordered_set<string> moves;
+    bool turn = 0;
+    string strMove;
+    
+    while (true)
+    {
+        Board &board = !turn ? whiteBoard : blackBoard;
+        printFullBoard(board);
+        moves.clear();
+        getMoves(moves, turn);
+        for (auto a : moves)
+            printf("%s ", a.c_str());
+        cout << endl;
+        cin >> strMove;
+        while (!moves.count(strMove))
+        {
+            cout << "Illegal move" << endl;
+            cin >> strMove;
+        }
+        makeMove(string_to_move(strMove), turn);
+        turn = !turn;
+    }
 
     return 0;
 }
