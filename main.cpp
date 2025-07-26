@@ -2,20 +2,19 @@
 #include "defs.h"
 #include "move.h"
 
-Board whiteBoard = initialWhiteBoard;
+Board currBoard = initialBoard;
 
 int main()
 {
-    // initBoard();
     unordered_set<string> moves;
     bool turn = 0;
     string strMove;
     
     while (true)
     {
-        printFullBoard(whiteBoard);
+        printFullBoard(currBoard);
         moves.clear();
-        getMoves(moves, turn);
+        getMoves(currBoard,moves, turn);
         for (auto a : moves)
             printf("%s ", a.c_str());
         cout << endl;
@@ -25,7 +24,7 @@ int main()
             cout << "Illegal move" << endl;
             cin >> strMove;
         }
-        makeMove(string_to_move(strMove), turn);
+        makeMove(currBoard,string_to_move(strMove), turn);
         turn = !turn;
     }
 

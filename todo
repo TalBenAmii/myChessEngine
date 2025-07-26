@@ -15,3 +15,5 @@ TODO: check if square is attacked
 en pessant capture
 casteling
 promotion
+
+- avoid sending board to macros/functions (global board)

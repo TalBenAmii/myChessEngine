@@ -1,10 +1,11 @@
 #ifndef DEFS_H
 #define DEFS_H
 #include <cassert>
-#include <stdio.h>
-#include <unordered_set>
-#include <string>
 #include <iostream>
+#include <stdio.h>
+#include <string>
+#include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 using namespace std;
@@ -55,16 +56,21 @@ using namespace std;
 #define RANK_7 6
 #define RANK_8 7
 
+#define WHITE_TURN 0
+#define BLACK_TURN 1
+
 #define u64 unsigned long long
 #define u16 unsigned short
 
-#define exists_piece(pieceBoard, square) (((pieceBoard) >> (square)) & 1ULL)
-#define get_piece(pieceBoard, square) ((pieceBoard) & (1ULL << (square)))
-#define add_piece(pieceBoard, square) (pieceBoard) |= (1ULL << (square))
-#define remove_piece(pieceBoard, square) (pieceBoard) ^= get_piece((pieceBoard), (square))
 
-#define is_black_piece(piece) ((piece) >= BLACK_BISHOP&& (piece) <= BLACK_ROOK)
+#define exists_piece(board, square) (((board) >> (square)) & 1ULL)
+#define get_piece(board, square) ((board) & (1ULL << (square)))
+#define add_piece(board, square) (board) |= (1ULL << (square))
+#define remove_piece(board, square) (board) ^= get_piece((board), (square))
+
+#define is_black_piece(piece) ((piece) >= BLACK_BISHOP && (piece) <= BLACK_ROOK)
 #define is_white_piece(piece) ((piece) >= WHITE_BISHOP && (piece) <= WHITE_ROOK)
+#define are_same_team(piece, otherPiece) (is_white_piece(piece) == is_white_piece(otherPiece))
 
 #define square_to_rank(square) ((square) / 8)
 #define square_to_file(square) ((square) % 8)
@@ -93,7 +99,6 @@ enum Square : char
     a8,     b8, c8, d8, e8, f8, g8, h8
 };
 // clang-format on
-
 typedef struct Board
 {
     u64 white_pawns;
@@ -110,6 +115,10 @@ typedef struct Board
     u64 black_queens;
     u64 black_king;
 } Board;
+
+constexpr char bishopDirections[] = {-9, -7, 7, 9, 0};
+constexpr char rookDirections[] = {-8, -1, 1, 8, 0};
+constexpr char queenDirections[] = {-9, -7, 7, 9, -8, -1, 1, 8, 0};
 
 // Function to convert square number to algebraic notation
 inline const char *square_to_string(int square)

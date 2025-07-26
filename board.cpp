@@ -47,37 +47,7 @@ char get_piece_at_square(const Board &board, char square)
         return BLACK_KING;
     return EMPTY_SQUARE;
 }
-
-// void initBoard()
-// {
-//     for (int i = 0; i < RANK_SIZE; i++)
-//     {
-//         add_piece(board.white_pawns, a2 + i);
-//         add_piece(board.black_pawns, a7 + i);
-//         if (i == ROOK_FILE_1 || i == ROOK_FILE_2)
-//         {
-//             add_piece(board.white_rooks, a1 + i);
-//             add_piece(board.black_rooks, a8 + i);
-//         }
-//         else if (i == KNIGHT_FILE_1 || i == KNIGHT_FILE_2)
-//         {
-//             add_piece(board.white_knights, a1 + i);
-//             add_piece(board.black_knights, a8 + i);
-//         }
-//         else if (i == BISHOP_FILE_1 || i == BISHOP_FILE_2)
-//         {
-//             add_piece(board.white_bishops, a1 + i);
-//             add_piece(board.black_bishops, a8 + i);
-//         }
-//         else if (i == QUEEN_FILE)
-//         {
-//             add_piece(board.white_queens, a1 + i);
-//             add_piece(board.black_queens, a8 + i);
-//         }
-//         else
-//         {
-//             add_piece(board.white_king, a1 + i);
-//             add_piece(board.black_king, a8 + i);
-//         }
-//     }
-// }
+bool isSquareBeingAttacked(const Board &board, char square,bool attackedBy)
+{
+    
+}

@@ -2,7 +2,9 @@
 #define BOARD_H
 #include "defs.h"
 
-constexpr Board initialWhiteBoard = {
+
+
+constexpr Board initialBoard = {
     0x000000000000FF00ULL, // white pawns
     0x0000000000000042ULL, // white knights
     0x0000000000000024ULL, // white bishops
@@ -22,7 +24,6 @@ extern bool enPassantWhite[8];
 extern bool enPassantBlack[8];
 
 void printFullBoard(const Board &board);
-void initBoard();
 char get_piece_at_square(const Board &board, char square);
 
 #endif /* BOARD_H */
